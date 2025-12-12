@@ -418,14 +418,22 @@ def dashboard():
         
         with col2:
             # Current Month Pie Chart
-            current_month = datetime.now().strftime("%Y-%m")
-            monthly_expenses = df[pd.to_datetime(df['Date']).dt.to_period('M').astype(str) == current_month]
-            if not monthly_expenses.empty:
-                month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
-                fig2 = create_pie_chart(month_totals, f"Expenses for {current_month}")
-                st.plotly_chart(fig2, use_container_width=True)
-            else:
-                st.info(f"No expenses recorded for {current_month}")
+            try:
+                current_month = datetime.now().strftime("%Y-%m")
+                # Convert dates with error handling
+                df_copy = df.copy()
+                df_copy['Date'] = pd.to_datetime(df_copy['Date'], errors='coerce')
+                df_copy = df_copy.dropna(subset=['Date'])
+                monthly_expenses = df_copy[pd.to_datetime(df_copy['Date']).dt.to_period('M').astype(str) == current_month]
+                if not monthly_expenses.empty:
+                    month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
+                    fig2 = create_pie_chart(month_totals, f"Expenses for {current_month}")
+                    st.plotly_chart(fig2, use_container_width=True)
+                else:
+                    st.info(f"No expenses recorded for {current_month}")
+            except Exception as e:
+                st.warning(f"Could not generate current month chart: {str(e)}")
+                st.info("Try adding more expenses or check date formats.")
 
 # Edit Expenses
 def edit_expense():
@@ -672,13 +680,22 @@ def predictions_page():
         """)
 
     # Check if we have current month data
-    df_current = load_expenses()
-    current_month = datetime.now().strftime("%Y-%m")
-    current_month_data = df_current[pd.to_datetime(df_current['Date']).dt.to_period('M').astype(str) == current_month]
+    try:
+        df_current = load_expenses()
+        current_month = datetime.now().strftime("%Y-%m")
+        # Convert dates with error handling
+        df_current_copy = df_current.copy()
+        df_current_copy['Date'] = pd.to_datetime(df_current_copy['Date'], errors='coerce')
+        df_current_copy = df_current_copy.dropna(subset=['Date'])
+        current_month_data = df_current_copy[pd.to_datetime(df_current_copy['Date']).dt.to_period('M').astype(str) == current_month]
 
-    if len(current_month_data) < 3:
-        st.warning("⚠️ We need at least 3 days of current month expense data for predictions.")
-        st.info("Please add some expenses for this month through the 'Add Expense' page.")
+        if len(current_month_data) < 3:
+            st.warning("⚠️ We need at least 3 days of current month expense data for predictions.")
+            st.info("Please add some expenses for this month through the 'Add Expense' page.")
+            return
+    except Exception as e:
+        st.error(f"Error loading current month data: {str(e)}")
+        st.info("Please check your expense data and try again.")
         return
 
     # Show data loading progress
@@ -686,9 +703,13 @@ def predictions_page():
         # Load historical training data from MLdata.csv
         try:
             df_training = pd.read_csv("MLdata.csv")
-            df_training["Date"] = pd.to_datetime(df_training["Date"])
+            df_training["Date"] = pd.to_datetime(df_training["Date"], errors='coerce')
+            df_training = df_training.dropna(subset=['Date'])
         except FileNotFoundError:
-            st.error("MLdata.csv file not found. Please ensure the training data file is available.")
+            st.error("MLdata.csv file not found. Please ensure the training data file is available in the same directory.")
+            return
+        except Exception as e:
+            st.error(f"Error loading training data: {str(e)}")
             return
 
         # Prepare training data
@@ -777,6 +798,7 @@ def predictions_page():
 
     # Automatic prediction section
     st.subheader("🎯 Automatic Predictions")
+    st.info("✅ **Automatic Mode**: The system now automatically uses your current month expense data for predictions. No manual input required!")
 
     # Get current month data automatically
     current_month_name = datetime.now().strftime("%B %Y")
