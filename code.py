@@ -1,4 +1,3 @@
-#initial commit
 import streamlit as st
 import time
 import pandas as pd
@@ -7,6 +6,13 @@ import plotly.graph_objects as go
 import os
 import base64
 from datetime import datetime, timedelta
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import warnings
+warnings.filterwarnings('ignore')
 
 # Set page config
 st.set_page_config(page_title="Spendr", page_icon="🪙", layout="centered")
@@ -416,7 +422,7 @@ def dashboard():
             monthly_expenses = df[pd.to_datetime(df['Date']).dt.to_period('M').astype(str) == current_month]
             if not monthly_expenses.empty:
                 month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
-                fig2 = create_pie_chart(month_totals, f"Expenses for {current_month}")
+                fig2 = create_pie_chart(month_tots, f"Expenses for {current_month}")
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info(f"No expenses recorded for {current_month}")
@@ -484,7 +490,7 @@ def about_page():
         st.markdown("""
         <p style='font-size: 16px; color: #888888;'>
         <br><br>
-            Hi! I'm Haris Farooq, a student of BS Artificial Intelligence (Batch 34) at GIK Institute. I’m passionate about using technology to solve real-world problems, especially in the fields of AI, data science, and automation. I love taking on creative challenges and constantly seek opportunities to learn and grow.This is my first Streamlit app, and I'm excited to share it as part of my journey into building interactive, user-friendly tools with real-world impact!
+            Hi! I'm Haris Farooq, a student of BS Artificial Intelligence (Batch 34) at GIK Institute. I'm passionate about using technology to solve real-world problems, especially in the fields of AI, data science, and automation. I love taking on creative challenges and constantly seek opportunities to learn and grow.This is my first Streamlit app, and I'm excited to share it as part of my journey into building interactive, user-friendly tools with real-world impact!
         </p>
         <p style='font-size: 16px;'>
             When I'm not coding, you can find me exploring new technologies, contributing to 
@@ -528,6 +534,349 @@ def about_page():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ----------------------------------------------------
+# PREDICTION FUNCTIONS (Integrated from Python code)
+# ----------------------------------------------------
+def create_enhanced_features(daily_df, monthly_totals):
+    rows = []
+    
+    for month, group in daily_df.groupby("Month"):
+        group = group.sort_values("Day")
+        month_str = str(month)
+        
+        if month_str not in monthly_totals.index:
+            continue
+            
+        full_month_total = monthly_totals.loc[month_str]
+        total_days_in_month = len(group)
+        
+        for cutoff_day in range(5, min(25, total_days_in_month)):
+            past_days = group[group["Day"] <= cutoff_day]
+            future_days = group[group["Day"] > cutoff_day]
+            
+            if len(past_days) < 3 or len(future_days) < 3:
+                continue
+                
+            past_amounts = past_days["Amount"].values
+            future_total = future_days["Amount"].sum()
+            remaining_days = len(future_days)
+            
+            rows.append({
+                "Month": month_str,
+                "Cutoff_Day": cutoff_day,
+                "Days_Used": len(past_days),
+                "Remaining_Days": remaining_days,
+                "Partial_Sum": np.sum(past_amounts),
+                "Avg_Daily": np.mean(past_amounts),
+                "Std_Dev": np.std(past_amounts) if len(past_amounts) > 1 else 0,
+                "Last_Day_Spend": past_amounts[-1],
+                "Max_So_Far": np.max(past_amounts),
+                "Min_So_Far": np.min(past_amounts),
+                "Avg_Last_3": np.mean(past_amounts[-3:]) if len(past_amounts) >= 3 else np.mean(past_amounts),
+                "Avg_Last_7": np.mean(past_amounts[-7:]) if len(past_amounts) >= 7 else np.mean(past_amounts),
+                "Trend_3_Days": past_amounts[-1] - np.mean(past_amounts[-4:-1]) if len(past_amounts) >= 4 else 0,
+                "Spend_Ratio": (np.max(past_amounts) - np.min(past_amounts)) / np.mean(past_amounts) if np.mean(past_amounts) > 0 else 0,
+                "Weekend_Count": past_days["Is_Weekend"].sum(),
+                "Weekend_Avg": past_days[past_days["Is_Weekend"] == 1]["Amount"].mean() 
+                               if (past_days["Is_Weekend"] == 1).any() else np.mean(past_amounts),
+                "Target_Future_Total": future_total,
+                "Target_Full_Month": full_month_total
+            })
+    
+    return pd.DataFrame(rows)
+
+def predict_remaining_expenses(final_model, first_n_days, days_remaining):
+    if days_remaining <= 0:
+        return 0
+    
+    first_n_days = np.array(first_n_days)
+    n_days = len(first_n_days)
+    
+    features = {
+        "Days_Used": n_days,
+        "Remaining_Days": days_remaining,
+        "Partial_Sum": np.sum(first_n_days),
+        "Avg_Daily": np.mean(first_n_days),
+        "Std_Dev": np.std(first_n_days) if n_days > 1 else 0.01,
+        "Last_Day_Spend": first_n_days[-1],
+        "Max_So_Far": np.max(first_n_days),
+        "Min_So_Far": np.min(first_n_days),
+        "Avg_Last_3": np.mean(first_n_days[-3:]) if n_days >= 3 else np.mean(first_n_days),
+        "Avg_Last_7": np.mean(first_n_days[-7:]) if n_days >= 7 else np.mean(first_n_days),
+        "Trend_3_Days": first_n_days[-1] - np.mean(first_n_days[-4:-1]) if n_days >= 4 else 0,
+        "Spend_Ratio": (np.max(first_n_days) - np.min(first_n_days)) / np.mean(first_n_days) 
+                      if np.mean(first_n_days) > 0 else 0.5,
+        "Weekend_Count": min(n_days // 2, 10),
+        "Weekend_Avg": np.mean(first_n_days) * 1.2
+    }
+    
+    input_df = pd.DataFrame([features])
+    prediction = final_model.predict(input_df)[0]
+    
+    if n_days >= 7:
+        week1 = np.mean(first_n_days[:min(7, n_days)])
+        week2 = np.mean(first_n_days[min(7, n_days):]) if n_days > 7 else week1
+        trend = week2 / week1 if week1 > 0 else 1
+        trend_factor = 0.7 + 0.3 * min(max(trend, 0.5), 1.5)
+        prediction *= trend_factor
+    
+    prediction *= 0.85
+    
+    min_pred = np.mean(first_n_days) * days_remaining * 0.5
+    max_pred = np.mean(first_n_days) * days_remaining * 2.0
+    prediction = max(min_pred, min(prediction, max_pred))
+    
+    return max(0, round(prediction, 2))
+
+def predict_full_month_from_partial(final_model, first_n_days, total_month_days=30):
+    spent_so_far = sum(first_n_days)
+    days_remaining = total_month_days - len(first_n_days)
+    
+    if days_remaining <= 0:
+        return {
+            "spent_so_far": spent_so_far,
+            "predicted_remaining": 0,
+            "predicted_full_month": spent_so_far,
+            "daily_average_so_far": spent_so_far / len(first_n_days),
+            "predicted_daily_remaining": 0,
+            "days_used": len(first_n_days),
+            "days_remaining": 0
+        }
+    
+    predicted_remaining = predict_remaining_expenses(final_model, first_n_days, days_remaining)
+    full_month_prediction = spent_so_far + predicted_remaining
+    
+    return {
+        "spent_so_far": spent_so_far,
+        "predicted_remaining": predicted_remaining,
+        "predicted_full_month": full_month_prediction,
+        "daily_average_so_far": spent_so_far / len(first_n_days),
+        "predicted_daily_remaining": predicted_remaining / days_remaining if days_remaining > 0 else 0,
+        "days_used": len(first_n_days),
+        "days_remaining": days_remaining
+    }
+
+def predictions_page():
+    st.subheader("🔮 AI Expense Predictions")
+    
+    with st.expander("ℹ️ About the AI Model"):
+        st.markdown("""
+        This feature uses machine learning to predict your future expenses based on your spending patterns.
+        
+        **Features:**
+        - Uses Random Forest, Gradient Boosting, and Linear Regression models
+        - Analyzes trends, moving averages, and weekend spending patterns
+        - Predicts remaining month expenses from partial data
+        - Automatically selects the best performing model
+        """)
+    
+    # Check if we have enough data
+    df = load_expenses()
+    if len(df) < 30:
+        st.warning("⚠️ We need at least 30 days of expense data for accurate predictions.")
+        st.info("Please add more expenses through the 'Add Expense' page.")
+        return
+    
+    # Show data loading progress
+    with st.spinner("Training AI model on your expense data..."):
+        # Prepare data
+        df = df.copy()
+        df["Date"] = pd.to_datetime(df["Date"])
+        daily = df.groupby("Date")["Amount"].sum().reset_index()
+        daily["Month"] = daily["Date"].dt.to_period("M")
+        daily["Day"] = daily["Date"].dt.day
+        daily["Day_of_Week"] = daily["Date"].dt.dayofweek
+        daily["Is_Weekend"] = daily["Day_of_Week"].isin([5, 6]).astype(int)
+        monthly_totals = daily.groupby("Month")["Amount"].sum()
+        
+        # Create training data
+        training_df = create_enhanced_features(daily, monthly_totals)
+        
+        if len(training_df) < 10:
+            st.error("Not enough data points for training. Please add more expenses.")
+            return
+        
+        feature_cols = [
+            "Days_Used", "Remaining_Days", "Partial_Sum", "Avg_Daily", "Std_Dev",
+            "Last_Day_Spend", "Max_So_Far", "Min_So_Far", 
+            "Avg_Last_3", "Avg_Last_7", "Trend_3_Days", "Spend_Ratio",
+            "Weekend_Count", "Weekend_Avg"
+        ]
+        
+        X = training_df[feature_cols]
+        y = training_df["Target_Future_Total"]
+        
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.20, random_state=42, shuffle=True
+        )
+        
+        # Train models
+        models = {
+            "Random Forest": RandomForestRegressor(
+                n_estimators=200,
+                max_depth=15,
+                min_samples_split=5,
+                min_samples_leaf=2,
+                random_state=42,
+                n_jobs=-1
+            ),
+            "Gradient Boosting": GradientBoostingRegressor(
+                n_estimators=150,
+                learning_rate=0.1,
+                max_depth=5,
+                random_state=42
+            ),
+            "Linear Regression": LinearRegression()
+        }
+        
+        best_model = None
+        best_score = -np.inf
+        model_results = {}
+        
+        for name, model in models.items():
+            cv_scores = cross_val_score(model, X_train, y_train, 
+                                        cv=5, scoring='neg_mean_absolute_error')
+            avg_mae = -cv_scores.mean()
+            
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            
+            r2 = r2_score(y_test, y_pred)
+            
+            if r2 > best_score:
+                best_score = r2
+                best_model = model
+                best_model_name = name
+        
+        final_model = best_model
+        final_model.fit(X_train, y_train)
+        y_pred_final = final_model.predict(X_test)
+        mae = mean_absolute_error(y_test, y_pred_final)
+        r2 = r2_score(y_test, y_pred_final)
+    
+    st.success(f"✅ Model trained successfully! Using: **{best_model_name}**")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Model Accuracy (R²)", f"{r2:.3f}")
+    with col2:
+        st.metric("Average Error (MAE)", f"PKR {mae:.2f}")
+    
+    st.markdown("---")
+    
+    # Interactive prediction section
+    st.subheader("🎯 Make Predictions")
+    
+    current_month = datetime.now().strftime("%B %Y")
+    current_day = datetime.now().day
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        days_used = st.number_input(
+            "Days of expenses available this month", 
+            min_value=1, max_value=29, value=min(current_day, 29)
+        )
+    with col2:
+        total_days = st.number_input(
+            "Total days in month", 
+            min_value=28, max_value=31, value=30
+        )
+    
+    st.markdown("**Enter your daily expenses for this month:**")
+    
+    daily_expenses = []
+    cols = st.columns(min(days_used, 7))
+    
+    for i in range(days_used):
+        with cols[i % 7]:
+            daily_expenses.append(st.number_input(
+                f"Day {i+1}", 
+                min_value=0.0, 
+                value=float(np.random.randint(1000, 8000)) if i < len(daily_expenses) else 0.0,
+                key=f"day_{i}"
+            ))
+    
+    if st.button("🔮 Predict Future Expenses", type="primary"):
+        if sum(daily_expenses) == 0:
+            st.warning("Please enter some expense values.")
+        else:
+            result = predict_full_month_from_partial(final_model, daily_expenses, total_days)
+            
+            st.markdown("---")
+            st.subheader("📊 Prediction Results")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Spent So Far", f"PKR {result['spent_so_far']:.2f}")
+            with col2:
+                st.metric("Predicted Remaining", f"PKR {result['predicted_remaining']:.2f}")
+            with col3:
+                st.metric("Full Month Prediction", f"PKR {result['predicted_full_month']:.2f}")
+            
+            st.markdown("---")
+            
+            # Visual comparison
+            st.subheader("📈 Comparison Chart")
+            
+            categories = ['Spent So Far', 'Predicted Remaining']
+            values = [result['spent_so_far'], result['predicted_remaining']]
+            
+            fig = go.Figure(data=[
+                go.Bar(name='Actual vs Predicted', x=categories, y=values,
+                      marker_color=['#00BFFF', '#D4AF37'])
+            ])
+            
+            fig.update_layout(
+                title='Spending Breakdown',
+                xaxis_title="Category",
+                yaxis_title="Amount (PKR)",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='white'),
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Daily averages comparison
+            st.subheader("📊 Daily Averages Comparison")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(
+                    "Current Daily Average", 
+                    f"PKR {result['daily_average_so_far']:.2f}",
+                    help="Average daily spending so far"
+                )
+            with col2:
+                st.metric(
+                    "Predicted Daily Average (Remaining)", 
+                    f"PKR {result['predicted_daily_remaining']:.2f}",
+                    delta=f"{result['predicted_daily_remaining'] - result['daily_average_so_far']:.2f}",
+                    delta_color="normal"
+                )
+            
+            # Advice based on prediction
+            st.markdown("---")
+            st.subheader("💡 Spending Insights")
+            
+            if result['predicted_daily_remaining'] > result['daily_average_so_far'] * 1.2:
+                st.warning("⚠️ You're predicted to spend **more** in the remaining days. Consider tightening your budget.")
+            elif result['predicted_daily_remaining'] < result['daily_average_so_far'] * 0.8:
+                st.success("✅ You're predicted to spend **less** in the remaining days. Great job!")
+            else:
+                st.info("📊 Your spending is predicted to remain relatively consistent.")
+            
+            # Simple projection vs model comparison
+            simple_projection = result['daily_average_so_far'] * total_days
+            st.metric(
+                "Simple Projection (avg × total days)", 
+                f"PKR {simple_projection:.2f}",
+                delta=f"{result['predicted_full_month'] - simple_projection:.2f}",
+                delta_color="normal",
+                help="Difference between simple projection and AI prediction"
+            )
+
+
 # Main App
 init_csv()
 if "page_loaded" not in st.session_state:
@@ -549,10 +898,10 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Navigation with golden selection effect
+    # Navigation with golden selection effect - ADDED PREDICTIONS OPTION
     menu = st.radio(
         "Navigation",
-        ["Dashboard", "Add Expense", "View Expenses", "Edit Expenses", "About"],
+        ["Dashboard", "Add Expense", "View Expenses", "Edit Expenses", "Predictions", "About"],
         index=0,
         key="nav"
     )
@@ -575,5 +924,7 @@ elif menu == "View Expenses":
     view_expenses()
 elif menu == "Edit Expenses":
     edit_expense()
+elif menu == "Predictions":  # ADDED NEW MENU OPTION
+    predictions_page()
 elif menu == "About":
     about_page()
