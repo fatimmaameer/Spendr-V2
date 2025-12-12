@@ -752,10 +752,14 @@ def predictions_page():
 
         **Features:**
         - Uses Random Forest, Gradient Boosting, and Linear Regression models
-        - Trained on comprehensive historical data (MLdata.csv)
+        - **Trained exclusively on MLdata.csv** (historical expense data from 2023-2024)
         - Analyzes trends, moving averages, and weekend spending patterns
         - Automatically predicts remaining month expenses from current month data
         - Automatically selects the best performing model
+
+        **Data Sources:**
+        - **Training Data:** MLdata.csv (historical patterns)
+        - **Prediction Input:** Current month expenses from expenses.csv
         """)
 
     # Check if we have current month data
@@ -778,10 +782,12 @@ def predictions_page():
         return
 
     # Show data loading progress
-    with st.spinner("Training AI model on historical data..."):
+    with st.spinner("🔄 Training AI model on MLdata.csv historical data..."):
         # Load historical training data from MLdata.csv
+        st.info("🔄 Loading and training model on historical data from MLdata.csv...")
         try:
             df_training = pd.read_csv("MLdata.csv")
+            st.info(f"📊 Loaded {len(df_training)} raw records from MLdata.csv")
 
             # Clean the data thoroughly
             df_training["Date"] = pd.to_datetime(df_training["Date"], errors='coerce')
@@ -792,25 +798,23 @@ def predictions_page():
             df_training = df_training.dropna(subset=['Amount'])
             df_training = df_training[df_training['Amount'] > 0]  # Remove zero or negative amounts
 
+            st.info(f"✅ After cleaning: {len(df_training)} valid training records from MLdata.csv")
+
             if len(df_training) < 100:
                 st.error("MLdata.csv contains insufficient clean training data.")
                 st.info(f"Only {len(df_training)} valid records found after cleaning. Need at least 100.")
                 return
 
         except FileNotFoundError:
-            st.error("MLdata.csv file not found. Please ensure the training data file is available in the same directory.")
+            st.error("❌ MLdata.csv file not found. Please ensure the training data file is available in the same directory.")
             return
         except Exception as e:
-            st.error(f"Error loading training data: {str(e)}")
+            st.error(f"❌ Error loading training data: {str(e)}")
             st.info("Please check the MLdata.csv file format and data quality.")
             return
 
         # Prepare training data
         df_training = df_training.copy()
-
-        # Clean the training data
-        df_training = df_training.dropna(subset=['Amount'])
-        df_training = df_training[df_training['Amount'] > 0]  # Remove negative or zero amounts
 
         if len(df_training) < 50:
             st.error("MLdata.csv contains insufficient valid training data.")
@@ -902,7 +906,8 @@ def predictions_page():
         mae = mean_absolute_error(y_test, y_pred_final)
         r2 = r2_score(y_test, y_pred_final)
     
-    st.success(f"✅ Model trained successfully! Using: **{best_model_name}**")
+    st.success(f"✅ Model trained successfully on MLdata.csv! Using: **{best_model_name}**")
+    st.info("🎯 **Training Complete:** Model trained on historical data from MLdata.csv")
 
     col1, col2 = st.columns(2)
     with col1:
