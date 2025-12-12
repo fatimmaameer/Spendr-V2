@@ -422,7 +422,7 @@ def dashboard():
             monthly_expenses = df[pd.to_datetime(df['Date']).dt.to_period('M').astype(str) == current_month]
             if not monthly_expenses.empty:
                 month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
-                fig2 = create_pie_chart(month_tots, f"Expenses for {current_month}")
+                fig2 = create_pie_chart(month_totals, f"Expenses for {current_month}")
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info(f"No expenses recorded for {current_month}")
@@ -658,51 +658,62 @@ def predict_full_month_from_partial(final_model, first_n_days, total_month_days=
 
 def predictions_page():
     st.subheader("🔮 AI Expense Predictions")
-    
+
     with st.expander("ℹ️ About the AI Model"):
         st.markdown("""
-        This feature uses machine learning to predict your future expenses based on your spending patterns.
-        
+        This feature uses machine learning to predict your future expenses based on historical spending patterns.
+
         **Features:**
         - Uses Random Forest, Gradient Boosting, and Linear Regression models
+        - Trained on comprehensive historical data (MLdata.csv)
         - Analyzes trends, moving averages, and weekend spending patterns
-        - Predicts remaining month expenses from partial data
+        - Automatically predicts remaining month expenses from current month data
         - Automatically selects the best performing model
         """)
-    
-    # Check if we have enough data
-    df = load_expenses()
-    if len(df) < 30:
-        st.warning("⚠️ We need at least 30 days of expense data for accurate predictions.")
-        st.info("Please add more expenses through the 'Add Expense' page.")
+
+    # Check if we have current month data
+    df_current = load_expenses()
+    current_month = datetime.now().strftime("%Y-%m")
+    current_month_data = df_current[pd.to_datetime(df_current['Date']).dt.to_period('M').astype(str) == current_month]
+
+    if len(current_month_data) < 3:
+        st.warning("⚠️ We need at least 3 days of current month expense data for predictions.")
+        st.info("Please add some expenses for this month through the 'Add Expense' page.")
         return
-    
+
     # Show data loading progress
-    with st.spinner("Training AI model on your expense data..."):
-        # Prepare data
-        df = df.copy()
-        df["Date"] = pd.to_datetime(df["Date"])
-        daily = df.groupby("Date")["Amount"].sum().reset_index()
-        daily["Month"] = daily["Date"].dt.to_period("M")
-        daily["Day"] = daily["Date"].dt.day
-        daily["Day_of_Week"] = daily["Date"].dt.dayofweek
-        daily["Is_Weekend"] = daily["Day_of_Week"].isin([5, 6]).astype(int)
-        monthly_totals = daily.groupby("Month")["Amount"].sum()
-        
-        # Create training data
-        training_df = create_enhanced_features(daily, monthly_totals)
-        
-        if len(training_df) < 10:
-            st.error("Not enough data points for training. Please add more expenses.")
+    with st.spinner("Training AI model on historical data..."):
+        # Load historical training data from MLdata.csv
+        try:
+            df_training = pd.read_csv("MLdata.csv")
+            df_training["Date"] = pd.to_datetime(df_training["Date"])
+        except FileNotFoundError:
+            st.error("MLdata.csv file not found. Please ensure the training data file is available.")
             return
+
+        # Prepare training data
+        df_training = df_training.copy()
+        daily_training = df_training.groupby("Date")["Amount"].sum().reset_index()
+        daily_training["Month"] = daily_training["Date"].dt.to_period("M")
+        daily_training["Day"] = daily_training["Date"].dt.day
+        daily_training["Day_of_Week"] = daily_training["Date"].dt.dayofweek
+        daily_training["Is_Weekend"] = daily_training["Day_of_Week"].isin([5, 6]).astype(int)
+        monthly_totals = daily_training.groupby("Month")["Amount"].sum()
         
+        # Create training data from historical data
+        training_df = create_enhanced_features(daily_training, monthly_totals)
+
+        if len(training_df) < 10:
+            st.error("Not enough training data points in MLdata.csv. Please ensure the training file has sufficient historical data.")
+            return
+
         feature_cols = [
             "Days_Used", "Remaining_Days", "Partial_Sum", "Avg_Daily", "Std_Dev",
-            "Last_Day_Spend", "Max_So_Far", "Min_So_Far", 
+            "Last_Day_Spend", "Max_So_Far", "Min_So_Far",
             "Avg_Last_3", "Avg_Last_7", "Trend_3_Days", "Spend_Ratio",
             "Weekend_Count", "Weekend_Avg"
         ]
-        
+
         X = training_df[feature_cols]
         y = training_df["Target_Future_Total"]
         
@@ -755,50 +766,48 @@ def predictions_page():
         r2 = r2_score(y_test, y_pred_final)
     
     st.success(f"✅ Model trained successfully! Using: **{best_model_name}**")
-    
+
     col1, col2 = st.columns(2)
     with col1:
         st.metric("Model Accuracy (R²)", f"{r2:.3f}")
     with col2:
         st.metric("Average Error (MAE)", f"PKR {mae:.2f}")
-    
+
     st.markdown("---")
-    
-    # Interactive prediction section
-    st.subheader("🎯 Make Predictions")
-    
-    current_month = datetime.now().strftime("%B %Y")
+
+    # Automatic prediction section
+    st.subheader("🎯 Automatic Predictions")
+
+    # Get current month data automatically
+    current_month_name = datetime.now().strftime("%B %Y")
     current_day = datetime.now().day
-    
-    col1, col2 = st.columns(2)
+
+    # Get current month expenses
+    current_month_expenses = current_month_data.copy()
+    current_month_expenses["Date"] = pd.to_datetime(current_month_expenses["Date"])
+    daily_current = current_month_expenses.groupby("Date")["Amount"].sum().reset_index()
+    daily_current = daily_current.sort_values("Date")
+    daily_expenses = daily_current["Amount"].values.tolist()
+
+    days_used = len(daily_expenses)
+    total_days = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    total_days = total_days.day
+
+    # Display current month information
+    col1, col2, col3 = st.columns(3)
     with col1:
-        days_used = st.number_input(
-            "Days of expenses available this month", 
-            min_value=1, max_value=29, value=min(current_day, 29)
-        )
+        st.metric("Current Month", current_month_name)
     with col2:
-        total_days = st.number_input(
-            "Total days in month", 
-            min_value=28, max_value=31, value=30
-        )
-    
-    st.markdown("**Enter your daily expenses for this month:**")
-    
-    daily_expenses = []
-    cols = st.columns(min(days_used, 7))
-    
-    for i in range(days_used):
-        with cols[i % 7]:
-            daily_expenses.append(st.number_input(
-                f"Day {i+1}", 
-                min_value=0.0, 
-                value=float(np.random.randint(1000, 8000)) if i < len(daily_expenses) else 0.0,
-                key=f"day_{i}"
-            ))
-    
-    if st.button("🔮 Predict Future Expenses", type="primary"):
-        if sum(daily_expenses) == 0:
-            st.warning("Please enter some expense values.")
+        st.metric("Days with Data", days_used)
+    with col3:
+        st.metric("Total Days in Month", total_days)
+
+    st.markdown("### 📊 Current Month Expenses")
+    st.dataframe(current_month_expenses[['Date', 'Category', 'Amount', 'Description']], use_container_width=True)
+
+    if st.button("🔮 Predict Remaining Expenses", type="primary"):
+        if days_used < 1:
+            st.warning("No expense data available for this month.")
         else:
             result = predict_full_month_from_partial(final_model, daily_expenses, total_days)
             
