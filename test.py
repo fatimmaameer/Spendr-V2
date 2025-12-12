@@ -692,7 +692,7 @@ def predictions_page():
         # Create training data
         training_df = create_enhanced_features(daily, monthly_totals)
         
-        if len(training_df) < 50:
+        if len(training_df) < 10:
             st.error("Not enough data points for training. Please add more expenses.")
             return
         
