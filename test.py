@@ -19,7 +19,7 @@ st.set_page_config(page_title="Spendr", page_icon="🪙", layout="centered")
 
 # Function to set dark background using encoded local image
 def set_bg_from_local(image_file):
-    with open("newbg.png", "rb") as img:
+    with open(image_file, "rb") as img:
         encoded = base64.b64encode(img.read()).decode()
     css = f"""
     <style>
