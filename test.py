@@ -188,7 +188,7 @@ def set_bg_from_local(image_file):
     }}
     </style>
     """
-    st.markdown(css, unsafe_allow_html=True)
+        st.markdown(css, unsafe_allow_html=True)
     except FileNotFoundError:
         st.warning("⚠️ Background image 'newbg.png' not found. Using default styling.")
         # Apply default styling without background image
@@ -243,7 +243,7 @@ def set_bg_from_local(image_file):
     }
     </style>
     """
-        st.markdown(css, unsafe_allow_html=True)
+    st.markdown(css, unsafe_allow_html=True)
 
 # Set background
 set_bg_from_local("newbg.png")
