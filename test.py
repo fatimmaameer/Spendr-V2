@@ -1069,4 +1069,4 @@ elif menu == "Edit Expenses":
 elif menu == "Predictions":  # ADDED NEW MENU OPTION
     predictions_page()
 elif menu == "About":
-    about_page()v
+    about_page()
