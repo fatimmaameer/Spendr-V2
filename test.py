@@ -18,8 +18,8 @@ warnings.filterwarnings('ignore')
 st.set_page_config(page_title="Spendr", page_icon="🪙", layout="centered")
 
 # Function to set dark background using encoded local image
-def set_bg_from_local(image_file):
-    with open(image_file, "rb") as img:
+def set_bg_from_local("newbg.png"):
+    with open("newbg.png", "rb") as img:
         encoded = base64.b64encode(img.read()).decode()
     css = f"""
     <style>
@@ -190,7 +190,7 @@ def set_bg_from_local(image_file):
     st.markdown(css, unsafe_allow_html=True)
 
 # Set background
-set_bg_from_local("newbg.png")
+#set_bg_from_local("newbg.png")
 
 # CSV file path
 CSV_FILE = "expenses.csv"
