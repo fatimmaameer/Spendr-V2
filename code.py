@@ -418,14 +418,22 @@ def dashboard():
         
         with col2:
             # Current Month Pie Chart
-            current_month = datetime.now().strftime("%Y-%m")
-            monthly_expenses = df[pd.to_datetime(df['Date']).dt.to_period('M').astype(str) == current_month]
-            if not monthly_expenses.empty:
-                month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
-                fig2 = create_pie_chart(month_tots, f"Expenses for {current_month}")
-                st.plotly_chart(fig2, use_container_width=True)
-            else:
-                st.info(f"No expenses recorded for {current_month}")
+            try:
+                current_month = datetime.now().strftime("%Y-%m")
+                # Convert dates with error handling
+                df_copy = df.copy()
+                df_copy['Date'] = pd.to_datetime(df_copy['Date'], errors='coerce')
+                df_copy = df_copy.dropna(subset=['Date'])
+                monthly_expenses = df_copy[pd.to_datetime(df_copy['Date']).dt.to_period('M').astype(str) == current_month]
+                if not monthly_expenses.empty:
+                    month_totals = monthly_expenses.groupby("Category")["Amount"].sum().reset_index()
+                    fig2 = create_pie_chart(month_totals, f"Expenses for {current_month}")
+                    st.plotly_chart(fig2, use_container_width=True)
+                else:
+                    st.info(f"No expenses recorded for {current_month}")
+            except Exception as e:
+                st.warning(f"Could not generate current month chart: {str(e)}")
+                st.info("Try adding more expenses or check date formats.")
 
 # Edit Expenses
 def edit_expense():
@@ -560,55 +568,134 @@ def create_enhanced_features(daily_df, monthly_totals):
             past_amounts = past_days["Amount"].values
             future_total = future_days["Amount"].sum()
             remaining_days = len(future_days)
-            
-            rows.append({
-                "Month": month_str,
-                "Cutoff_Day": cutoff_day,
-                "Days_Used": len(past_days),
-                "Remaining_Days": remaining_days,
-                "Partial_Sum": np.sum(past_amounts),
-                "Avg_Daily": np.mean(past_amounts),
-                "Std_Dev": np.std(past_amounts) if len(past_amounts) > 1 else 0,
-                "Last_Day_Spend": past_amounts[-1],
-                "Max_So_Far": np.max(past_amounts),
-                "Min_So_Far": np.min(past_amounts),
-                "Avg_Last_3": np.mean(past_amounts[-3:]) if len(past_amounts) >= 3 else np.mean(past_amounts),
-                "Avg_Last_7": np.mean(past_amounts[-7:]) if len(past_amounts) >= 7 else np.mean(past_amounts),
-                "Trend_3_Days": past_amounts[-1] - np.mean(past_amounts[-4:-1]) if len(past_amounts) >= 4 else 0,
-                "Spend_Ratio": (np.max(past_amounts) - np.min(past_amounts)) / np.mean(past_amounts) if np.mean(past_amounts) > 0 else 0,
-                "Weekend_Count": past_days["Is_Weekend"].sum(),
-                "Weekend_Avg": past_days[past_days["Is_Weekend"] == 1]["Amount"].mean() 
-                               if (past_days["Is_Weekend"] == 1).any() else np.mean(past_amounts),
-                "Target_Future_Total": future_total,
-                "Target_Full_Month": full_month_total
-            })
+
+            # Filter out any NaN or invalid values
+            past_amounts = past_amounts[~np.isnan(past_amounts)]
+            future_amounts = future_days["Amount"].values
+            future_amounts = future_amounts[~np.isnan(future_amounts)]
+            future_total = np.sum(future_amounts)
+
+            # Skip if we don't have valid data
+            if len(past_amounts) < 3:
+                continue
+
+            # Calculate statistics safely
+            try:
+                avg_daily = np.mean(past_amounts)
+                std_dev = np.std(past_amounts) if len(past_amounts) > 1 else 0
+                last_day_spend = past_amounts[-1] if len(past_amounts) > 0 else 0
+                max_so_far = np.max(past_amounts) if len(past_amounts) > 0 else 0
+                min_so_far = np.min(past_amounts) if len(past_amounts) > 0 else 0
+
+                # Safe mean calculations
+                avg_last_3 = np.mean(past_amounts[-3:]) if len(past_amounts) >= 3 else (avg_daily if avg_daily == avg_daily else 0)
+                avg_last_7 = np.mean(past_amounts[-7:]) if len(past_amounts) >= 7 else (avg_daily if avg_daily == avg_daily else 0)
+
+                # Trend calculation
+                trend_3_days = 0
+                if len(past_amounts) >= 4:
+                    recent_3 = past_amounts[-4:-1]
+                    if len(recent_3) > 0:
+                        trend_3_days = past_amounts[-1] - np.mean(recent_3)
+
+                # Spend ratio
+                spend_ratio = 0
+                if avg_daily > 0 and len(past_amounts) > 1:
+                    spend_ratio = (max_so_far - min_so_far) / avg_daily
+
+                # Weekend calculations
+                weekend_count = past_days["Is_Weekend"].sum()
+                weekend_avg = avg_daily  # default
+                weekend_data = past_days[past_days["Is_Weekend"] == 1]["Amount"]
+                if len(weekend_data) > 0:
+                    weekend_avg = np.mean(weekend_data[~np.isnan(weekend_data)])
+
+                rows.append({
+                    "Month": month_str,
+                    "Cutoff_Day": cutoff_day,
+                    "Days_Used": len(past_amounts),
+                    "Remaining_Days": remaining_days,
+                    "Partial_Sum": np.sum(past_amounts),
+                    "Avg_Daily": avg_daily,
+                    "Std_Dev": std_dev,
+                    "Last_Day_Spend": last_day_spend,
+                    "Max_So_Far": max_so_far,
+                    "Min_So_Far": min_so_far,
+                    "Avg_Last_3": avg_last_3,
+                    "Avg_Last_7": avg_last_7,
+                    "Trend_3_Days": trend_3_days,
+                    "Spend_Ratio": spend_ratio,
+                    "Weekend_Count": weekend_count,
+                    "Weekend_Avg": weekend_avg,
+                    "Target_Future_Total": future_total,
+                    "Target_Full_Month": full_month_total
+                })
+            except Exception as e:
+                # Skip this data point if calculations fail
+                continue
     
     return pd.DataFrame(rows)
 
 def predict_remaining_expenses(final_model, first_n_days, days_remaining):
     if days_remaining <= 0:
         return 0
-    
+
     first_n_days = np.array(first_n_days)
+    # Filter out NaN values
+    first_n_days = first_n_days[~np.isnan(first_n_days)]
+
     n_days = len(first_n_days)
-    
-    features = {
-        "Days_Used": n_days,
-        "Remaining_Days": days_remaining,
-        "Partial_Sum": np.sum(first_n_days),
-        "Avg_Daily": np.mean(first_n_days),
-        "Std_Dev": np.std(first_n_days) if n_days > 1 else 0.01,
-        "Last_Day_Spend": first_n_days[-1],
-        "Max_So_Far": np.max(first_n_days),
-        "Min_So_Far": np.min(first_n_days),
-        "Avg_Last_3": np.mean(first_n_days[-3:]) if n_days >= 3 else np.mean(first_n_days),
-        "Avg_Last_7": np.mean(first_n_days[-7:]) if n_days >= 7 else np.mean(first_n_days),
-        "Trend_3_Days": first_n_days[-1] - np.mean(first_n_days[-4:-1]) if n_days >= 4 else 0,
-        "Spend_Ratio": (np.max(first_n_days) - np.min(first_n_days)) / np.mean(first_n_days) 
-                      if np.mean(first_n_days) > 0 else 0.5,
-        "Weekend_Count": min(n_days // 2, 10),
-        "Weekend_Avg": np.mean(first_n_days) * 1.2
-    }
+
+    if n_days == 0:
+        return 0
+
+    # Safe calculations
+    try:
+        partial_sum = np.sum(first_n_days)
+        avg_daily = np.mean(first_n_days)
+        std_dev = np.std(first_n_days) if n_days > 1 else 0.01
+        last_day_spend = first_n_days[-1] if n_days > 0 else 0
+        max_so_far = np.max(first_n_days) if n_days > 0 else 0
+        min_so_far = np.min(first_n_days) if n_days > 0 else 0
+
+        # Safe mean calculations for subsets
+        avg_last_3 = np.mean(first_n_days[-3:]) if n_days >= 3 else avg_daily
+        avg_last_7 = np.mean(first_n_days[-7:]) if n_days >= 7 else avg_daily
+
+        # Trend calculation
+        trend_3_days = 0
+        if n_days >= 4:
+            recent_3 = first_n_days[-4:-1]
+            if len(recent_3) > 0:
+                trend_3_days = first_n_days[-1] - np.mean(recent_3)
+
+        # Spend ratio
+        spend_ratio = 0.5  # default
+        if n_days > 1 and avg_daily > 0:
+            spend_ratio = (max_so_far - min_so_far) / avg_daily
+
+        weekend_count = min(n_days // 2, 10)
+        weekend_avg = avg_daily * 1.2 if avg_daily > 0 else 1.0
+
+        features = {
+            "Days_Used": n_days,
+            "Remaining_Days": days_remaining,
+            "Partial_Sum": partial_sum,
+            "Avg_Daily": avg_daily,
+            "Std_Dev": std_dev,
+            "Last_Day_Spend": last_day_spend,
+            "Max_So_Far": max_so_far,
+            "Min_So_Far": min_so_far,
+            "Avg_Last_3": avg_last_3,
+            "Avg_Last_7": avg_last_7,
+            "Trend_3_Days": trend_3_days,
+            "Spend_Ratio": spend_ratio,
+            "Weekend_Count": weekend_count,
+            "Weekend_Avg": weekend_avg
+        }
+    except Exception as e:
+        # Return a conservative estimate if calculations fail
+        return days_remaining * 1000  # Conservative daily estimate
     
     input_df = pd.DataFrame([features])
     prediction = final_model.predict(input_df)[0]
@@ -658,51 +745,116 @@ def predict_full_month_from_partial(final_model, first_n_days, total_month_days=
 
 def predictions_page():
     st.subheader("🔮 AI Expense Predictions")
-    
+
     with st.expander("ℹ️ About the AI Model"):
         st.markdown("""
-        This feature uses machine learning to predict your future expenses based on your spending patterns.
-        
+        This feature uses machine learning to predict your future expenses based on historical spending patterns.
+
         **Features:**
         - Uses Random Forest, Gradient Boosting, and Linear Regression models
+        - **Trained exclusively on MLdata.csv** (historical expense data from 2023-2024)
         - Analyzes trends, moving averages, and weekend spending patterns
-        - Predicts remaining month expenses from partial data
+        - Automatically predicts remaining month expenses from current month data
         - Automatically selects the best performing model
+
+        **Data Sources:**
+        - **Training Data:** MLdata.csv (historical patterns)
+        - **Prediction Input:** Current month expenses from expenses.csv
         """)
-    
-    # Check if we have enough data
-    df = load_expenses()
-    if len(df) < 30:
-        st.warning("⚠️ We need at least 30 days of expense data for accurate predictions.")
-        st.info("Please add more expenses through the 'Add Expense' page.")
+
+    # Check if we have current month data
+    try:
+        df_current = load_expenses()
+        current_month = datetime.now().strftime("%Y-%m")
+        # Convert dates with error handling
+        df_current_copy = df_current.copy()
+        df_current_copy['Date'] = pd.to_datetime(df_current_copy['Date'], errors='coerce')
+        df_current_copy = df_current_copy.dropna(subset=['Date'])
+        current_month_data = df_current_copy[pd.to_datetime(df_current_copy['Date']).dt.to_period('M').astype(str) == current_month]
+
+        if len(current_month_data) < 3:
+            st.warning("⚠️ We need at least 3 days of current month expense data for predictions.")
+            st.info("Please add some expenses for this month through the 'Add Expense' page.")
+            return
+    except Exception as e:
+        st.error(f"Error loading current month data: {str(e)}")
+        st.info("Please check your expense data and try again.")
         return
-    
+
     # Show data loading progress
-    with st.spinner("Training AI model on your expense data..."):
-        # Prepare data
-        df = df.copy()
-        df["Date"] = pd.to_datetime(df["Date"])
-        daily = df.groupby("Date")["Amount"].sum().reset_index()
-        daily["Month"] = daily["Date"].dt.to_period("M")
-        daily["Day"] = daily["Date"].dt.day
-        daily["Day_of_Week"] = daily["Date"].dt.dayofweek
-        daily["Is_Weekend"] = daily["Day_of_Week"].isin([5, 6]).astype(int)
-        monthly_totals = daily.groupby("Month")["Amount"].sum()
-        
-        # Create training data
-        training_df = create_enhanced_features(daily, monthly_totals)
-        
-        if len(training_df) < 10:
-            st.error("Not enough data points for training. Please add more expenses.")
+    with st.spinner("🔄 Training AI model on MLdata.csv historical data..."):
+        # Load historical training data from MLdata.csv
+        st.info("🔄 Loading and training model on historical data from MLdata.csv...")
+        try:
+            df_training = pd.read_csv("MLdata.csv")
+            st.info(f"📊 Loaded {len(df_training)} raw records from MLdata.csv")
+
+            # Clean the data thoroughly
+            df_training["Date"] = pd.to_datetime(df_training["Date"], errors='coerce')
+            df_training = df_training.dropna(subset=['Date'])
+
+            # Convert Amount to numeric and filter invalid values
+            df_training["Amount"] = pd.to_numeric(df_training["Amount"], errors='coerce')
+            df_training = df_training.dropna(subset=['Amount'])
+            df_training = df_training[df_training['Amount'] > 0]  # Remove zero or negative amounts
+
+            st.info(f"✅ After cleaning: {len(df_training)} valid training records from MLdata.csv")
+
+            if len(df_training) < 100:
+                st.error("MLdata.csv contains insufficient clean training data.")
+                st.info(f"Only {len(df_training)} valid records found after cleaning. Need at least 100.")
+                return
+
+        except FileNotFoundError:
+            st.error("❌ MLdata.csv file not found. Please ensure the training data file is available in the same directory.")
+            return
+        except Exception as e:
+            st.error(f"❌ Error loading training data: {str(e)}")
+            st.info("Please check the MLdata.csv file format and data quality.")
+            return
+
+        # Prepare training data
+        df_training = df_training.copy()
+
+        if len(df_training) < 50:
+            st.error("MLdata.csv contains insufficient valid training data.")
+            st.info(f"Only {len(df_training)} valid records found. Need at least 50.")
+            return
+
+        daily_training = df_training.groupby("Date")["Amount"].sum().reset_index()
+        daily_training["Month"] = daily_training["Date"].dt.to_period("M")
+        daily_training["Day"] = daily_training["Date"].dt.day
+        daily_training["Day_of_Week"] = daily_training["Date"].dt.dayofweek
+        daily_training["Is_Weekend"] = daily_training["Day_of_Week"].isin([5, 6]).astype(int)
+        monthly_totals = daily_training.groupby("Month")["Amount"].sum()
+
+        # Filter out months with very few days
+        valid_months = monthly_totals[monthly_totals > 100]  # Months with at least some spending
+        if len(valid_months) < 3:
+            st.error("MLdata.csv doesn't contain enough valid monthly data for training.")
+            st.info(f"Only {len(valid_months)} valid months found. Need at least 3.")
             return
         
+        # Create training data from historical data
+        try:
+            training_df = create_enhanced_features(daily_training, monthly_totals)
+        except Exception as e:
+            st.error(f"Error processing training data: {str(e)}")
+            st.info("Please check the MLdata.csv file for data quality issues.")
+            return
+
+        if len(training_df) < 10:
+            st.error("Not enough training data points in MLdata.csv. Please ensure the training file has sufficient historical data.")
+            st.info(f"Only {len(training_df)} valid training samples found. Need at least 10.")
+            return
+
         feature_cols = [
             "Days_Used", "Remaining_Days", "Partial_Sum", "Avg_Daily", "Std_Dev",
-            "Last_Day_Spend", "Max_So_Far", "Min_So_Far", 
+            "Last_Day_Spend", "Max_So_Far", "Min_So_Far",
             "Avg_Last_3", "Avg_Last_7", "Trend_3_Days", "Spend_Ratio",
             "Weekend_Count", "Weekend_Avg"
         ]
-        
+
         X = training_df[feature_cols]
         y = training_df["Target_Future_Total"]
         
@@ -754,51 +906,51 @@ def predictions_page():
         mae = mean_absolute_error(y_test, y_pred_final)
         r2 = r2_score(y_test, y_pred_final)
     
-    st.success(f"✅ Model trained successfully! Using: **{best_model_name}**")
-    
+    st.success(f"✅ Model trained successfully on MLdata.csv! Using: **{best_model_name}**")
+    st.info("🎯 **Training Complete:** Model trained on historical data from MLdata.csv")
+
     col1, col2 = st.columns(2)
     with col1:
         st.metric("Model Accuracy (R²)", f"{r2:.3f}")
     with col2:
         st.metric("Average Error (MAE)", f"PKR {mae:.2f}")
-    
+
     st.markdown("---")
-    
-    # Interactive prediction section
-    st.subheader("🎯 Make Predictions")
-    
-    current_month = datetime.now().strftime("%B %Y")
+
+    # Automatic prediction section
+    st.subheader("🎯 Automatic Predictions")
+    st.info("✅ **Automatic Mode**: The system now automatically uses your current month expense data for predictions. No manual input required!")
+
+    # Get current month data automatically
+    current_month_name = datetime.now().strftime("%B %Y")
     current_day = datetime.now().day
-    
-    col1, col2 = st.columns(2)
+
+    # Get current month expenses
+    current_month_expenses = current_month_data.copy()
+    current_month_expenses["Date"] = pd.to_datetime(current_month_expenses["Date"])
+    daily_current = current_month_expenses.groupby("Date")["Amount"].sum().reset_index()
+    daily_current = daily_current.sort_values("Date")
+    daily_expenses = daily_current["Amount"].values.tolist()
+
+    days_used = len(daily_expenses)
+    total_days = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    total_days = total_days.day
+
+    # Display current month information
+    col1, col2, col3 = st.columns(3)
     with col1:
-        days_used = st.number_input(
-            "Days of expenses available this month", 
-            min_value=1, max_value=29, value=min(current_day, 29)
-        )
+        st.metric("Current Month", current_month_name)
     with col2:
-        total_days = st.number_input(
-            "Total days in month", 
-            min_value=28, max_value=31, value=30
-        )
-    
-    st.markdown("**Enter your daily expenses for this month:**")
-    
-    daily_expenses = []
-    cols = st.columns(min(days_used, 7))
-    
-    for i in range(days_used):
-        with cols[i % 7]:
-            daily_expenses.append(st.number_input(
-                f"Day {i+1}", 
-                min_value=0.0, 
-                value=float(np.random.randint(1000, 8000)) if i < len(daily_expenses) else 0.0,
-                key=f"day_{i}"
-            ))
-    
-    if st.button("🔮 Predict Future Expenses", type="primary"):
-        if sum(daily_expenses) == 0:
-            st.warning("Please enter some expense values.")
+        st.metric("Days with Data", days_used)
+    with col3:
+        st.metric("Total Days in Month", total_days)
+
+    st.markdown("### 📊 Current Month Expenses")
+    st.dataframe(current_month_expenses[['Date', 'Category', 'Amount', 'Description']], use_container_width=True)
+
+    if st.button("🔮 Predict Remaining Expenses", type="primary"):
+        if days_used < 1:
+            st.warning("No expense data available for this month.")
         else:
             result = predict_full_month_from_partial(final_model, daily_expenses, total_days)
             
