@@ -15,13 +15,14 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Set page config
-st.set_page_config(page_title="Spendr", page_icon="🪙", layout="centered")
+st.set_page_config(page_title="Spendr", page_icon="🌏", layout="centered")
 
 # Function to set dark background using encoded local image
 def set_bg_from_local(image_file):
-    with open(image_file, "rb") as img:
-        encoded = base64.b64encode(img.read()).decode()
-    css = f"""
+    try:
+        with open(image_file, "rb") as img:
+            encoded = base64.b64encode(img.read()).decode()
+        css = f"""
     <style>
     [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/png;base64,{encoded}");
@@ -29,6 +30,7 @@ def set_bg_from_local(image_file):
         background-position: center;
         background-repeat: no-repeat;
         color: #E0E0E0;
+;
     }}
     h1, h2, h3, h4, h5, h6, label, p, span, div {{
         color: #E0E0E0 !important;
@@ -185,6 +187,61 @@ def set_bg_from_local(image_file):
         color: #D4AF37 !important;
         transform: scale(1.2) !important;
     }}
+    </style>
+    """
+        st.markdown(css, unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.warning("⚠️ Background image 'newbg.png' not found. Using default styling.")
+        # Apply default styling without background image
+        css = """
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        color: #E0E0E0;
+    }
+    h1, h2, h3, h4, h5, h6, label, p, span, div {
+        color: #E0E0E0 !important;
+    }
+    .stButton>button {
+        background: linear-gradient(135deg, #00BFFF, #0066CC);
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .stTextInput>div>input, .stNumberInput>div>input, .stDateInput>div>input {
+        background-color: rgba(30, 144, 255, 0.2);
+        color: #E0E0E0;
+        font-weight: bold;
+        border-radius: 8px;
+        border: 1px solid #00BFFF;
+    }
+    .stSelectbox>div>select {
+        background-color: rgba(30, 144, 255, 0.2);
+        color: #E0E0E0;
+        font-weight: bold;
+        border-radius: 8px;
+        border: 1px solid #00BFFF;
+    }
+    /* Sidebar styling - Updated to golden gradient */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #D4AF37 0%, #996515 100%);
+        color: white;
+    }
+    /* Metric styling for golden theme */
+    [data-testid="stMetric"] {
+        background-color: rgba(153, 101, 21, 0.3);
+        border-radius: 8px;
+        padding: 10px;
+        border-left: 3px solid #D4AF37;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #D4AF37 !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: white !important;
+    }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
