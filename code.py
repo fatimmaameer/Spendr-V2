@@ -1,3 +1,5 @@
+#The relevant libraries - | streamlit | pandas | Numpy | Plotly | Scikitlearn | Matplotlib |
+
 import streamlit as st
 import time
 import pandas as pd
@@ -14,10 +16,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import warnings
 warnings.filterwarnings('ignore')
 
-# Set page config
+# Setting page configuration
 st.set_page_config(page_title="Spendr", page_icon="🌏", layout="centered")
 
-# Function to set dark background using encoded local image
+# Function to set dark background using encoded local image + sidebar + text + logo styling 
 def set_bg_from_local(image_file):
     try:
         with open(image_file, "rb") as img:
@@ -192,7 +194,9 @@ def set_bg_from_local(image_file):
         st.markdown(css, unsafe_allow_html=True)
     except FileNotFoundError:
         st.warning("⚠️ Background image 'newbg.png' not found. Using default styling.")
-        # Apply default styling without background image
+        
+        
+        # Apply default styling without background image (but since we will be giving the image , this wont be necessary )
         css = """
     <style>
     [data-testid="stAppViewContainer"] {
@@ -246,7 +250,7 @@ def set_bg_from_local(image_file):
     """
     st.markdown(css, unsafe_allow_html=True)
 
-# Set background
+# Set background 
 set_bg_from_local("newbg.png")
 
 # CSV file path
@@ -258,7 +262,7 @@ def init_csv():
         df = pd.DataFrame(columns=["Date", "Category", "Amount", "Description"])
         df.to_csv(CSV_FILE, index=False)
 
-# Load existing expenses - FIXED VERSION
+# Load existing expenses 
 def load_expenses():
     df = pd.read_csv(CSV_FILE)
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
@@ -283,7 +287,7 @@ def save_expense(date, category, amount, description):
     df.to_csv(CSV_FILE, index=False)
     return True
 
-# Edit an expense by index
+# Edit an expense by index in the expense log being displayed above 
 def update_expense(index, date, category, amount, description):
     if amount <= 0:
         st.error("Amount must be greater than 0! Please enter a valid amount.")
