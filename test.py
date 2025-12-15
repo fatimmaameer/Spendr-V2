@@ -476,7 +476,7 @@ def dashboard():
         with col2:
             # Current Month Pie Chart
             try:
-                current_month = datetime.now().strftime("%Y-%m")
+                first_month = df["Date"].dt.to_period("M").iloc[0].strftime("%Y-%m")
                 # Convert dates with error handling
                 df_copy = df.copy()
                 df_copy['Date'] = pd.to_datetime(df_copy['Date'], errors='coerce')
