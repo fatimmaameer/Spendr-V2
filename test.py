@@ -29,7 +29,7 @@ def set_bg_from_local(image_file):
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        color: ##FFFFFF
+        color: #E0E0E0;
 ;
     }}
     h1, h2, h3, h4, h5, h6, label, p, span, div {{
