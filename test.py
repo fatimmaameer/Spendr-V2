@@ -247,7 +247,7 @@ def set_bg_from_local(image_file):
     st.markdown(css, unsafe_allow_html=True)
 
 # Set background
-set_bg_from_local("https://github.com/HarisFarooq23/Spendr/blob/main/newbg.png")
+set_bg_from_local("https://github.com/fatimmaameer/Spendr/blob/main/newbg.png")
 
 # CSV file path
 CSV_FILE = "expenses.csv"
