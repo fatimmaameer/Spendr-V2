@@ -1095,29 +1095,52 @@ def predictions_page():
             model_names = list(model_results.keys())
             mae_values = [model_results[name]['mae'] for name in model_names]
 
-            # Create matplotlib bar chart
-            fig, ax = plt.subplots(figsize=(10, 6))
-            bars = ax.bar(model_names, mae_values, color=['#FF6B6B', '#4ECDC4', '#45B7D1'], alpha=0.8)
+# Create matplotlib bar chart
+fig, ax = plt.subplots(figsize=(10, 6))
 
-            # Add value labels on top of bars
-            for bar, mae in zip(bars, mae_values):
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height + max(mae_values)*0.02,
-                        f'PKR {mae:.2f}', ha='center', va='bottom', fontweight='bold')
+# Make background transparent
+fig.patch.set_alpha(0)
+ax.set_facecolor('none')
 
-            # Customize the chart
-            ax.set_ylabel('Mean Absolute Error (MAE)', fontsize=12, fontweight='bold')
-            ax.set_xlabel('Machine Learning Models', fontsize=12, fontweight='bold')
-            ax.set_title('Model Accuracy Comparison: Lower MAE = Better Performance',
-                         fontsize=14, fontweight='bold', pad=20)
-            ax.grid(axis='y', alpha=0.3)
+bars = ax.bar(model_names, mae_values, color=['#FF6B6B', '#4ECDC4', '#45B7D1'], alpha=0.8)
 
-            # Highlight the best model (lowest MAE)
-            best_idx = mae_values.index(min(mae_values))
-            bars[best_idx].set_color('#FFD700')  # Gold color for best model
+# Add value labels on top of bars
+for bar, mae in zip(bars, mae_values):
+    height = bar.get_height()
+    ax.text(
+        bar.get_x() + bar.get_width()/2.,
+        height + max(mae_values)*0.02,
+        f'PKR {mae:.2f}',
+        ha='center',
+        va='bottom',
+        fontweight='bold',
+        color='white'  # text color white
+    )
 
-            plt.tight_layout()
-            st.pyplot(fig)
+# Customize the chart (text color white)
+ax.set_ylabel('Mean Absolute Error (MAE)', fontsize=12, fontweight='bold', color='white')
+ax.set_xlabel('Machine Learning Models', fontsize=12, fontweight='bold', color='white')
+ax.set_title(
+    'Model Accuracy Comparison: Lower MAE = Better Performance',
+    fontsize=14,
+    fontweight='bold',
+    pad=20,
+    color='white'
+)
+
+# Grid styling
+ax.grid(axis='y', alpha=0.3)
+
+# Tick colors white
+ax.tick_params(colors='white')
+
+# Highlight the best model (lowest MAE)
+best_idx = mae_values.index(min(mae_values))
+bars[best_idx].set_color('#FFD700')  # Gold color for best model
+
+plt.tight_layout()
+st.pyplot(fig)
+
 
             # Performance Insights
             st.markdown("---")
