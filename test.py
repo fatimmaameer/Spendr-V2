@@ -535,7 +535,59 @@ def about_page():
         money has never been easier.
     </p>
     """, unsafe_allow_html=True)
-   
+    
+    st.markdown('<h2 class="about-subheader">🌍 About the Developer</h2>', unsafe_allow_html=True)
+    
+    # Developer info in columns
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.markdown("""
+                    <br><br> 
+        <div style='text-align: center;'>
+            <img src='https://media.licdn.com/dms/image/v2/D4D03AQHnjp96gkwCZA/profile-displayphoto-shrink_400_400/B4DZVRSQG5HIAg-/0/1740825496309?e=1756339200&v=beta&t=zOwgJ-pTDxNpTzLHJ7pzer2RFHtDVd_GhwJKQrMzG4E' 
+                 style='width: 150px; height: 150px; border-radius: 50%; border: 4px solid #D4AF37;'>
+            <h3 style='color:#666666; margin-top: 10px;'>-Haris Farooq</h3>
+            <p style='color: #888888;' > UI/UX Enthusiast</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <p style='font-size: 16px; color: #888888;'>
+        <br><br>
+            Hi! I'm Haris Farooq, a student of BS Artificial Intelligence (Batch 34) at GIK Institute. I'm passionate about using technology to solve real-world problems, especially in the fields of AI, data science, and automation. I love taking on creative challenges and constantly seek opportunities to learn and grow.This is my first Streamlit app, and I'm excited to share it as part of my journey into building interactive, user-friendly tools with real-world impact!
+        </p>
+        <p style='font-size: 16px;'>
+            When I'm not coding, you can find me exploring new technologies, contributing to 
+            open-source projects, or enjoying outdoor activities.
+        </p>
+        """, unsafe_allow_html=True)
+    
+    st.markdown('<h2 class="about-subheader">🛠️ Technical Skills</h2>', unsafe_allow_html=True)
+    st.markdown(""" 
+        <br> 
+    <div style='text-align: center;'>
+        <span class='skill-pill'>Python</span>
+        <span class='skill-pill'>Streamlit</span>
+        <span class='skill-pill'>Pandas</span>
+        <span class='skill-pill'>Plotly</span>
+        <span class='skill-pill'>Data Visualization</span>
+        <span class='skill-pill'>Web Development</span>
+        <span class='skill-pill'>UI/UX Design</span>
+        <span class='skill-pill'>Data Analysis</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<h2 class="about-subheader">🌍 Connect With Me</h2>', unsafe_allow_html=True)
+    st.markdown("""
+        <br> 
+    <div style='text-align: center;'>
+        <a href='https://github.com/HarisFarooq23' class='social-icon'>GitHub</a>
+        <a href='https://www.linkedin.com/in/harisfarooq23/' class='social-icon'>LinkedIn</a>
+        
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown('<h2 class="about-subheader">🌍 Special Thanks</h2>', unsafe_allow_html=True)
     st.markdown("""
