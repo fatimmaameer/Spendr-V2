@@ -1,16 +1,16 @@
 Date,Category,Amount,Description
 2025-09-27,Food,820.0,Lunch
 2025-09-28,Transport,760.0,Commute
-2025-09-29,Other,910.0,Misc items
-2025-09-30,Internet,2480.0,Monthly bill
+2025-09-29,Other,810.0,Misc items
+2025-09-30,Internet,1200.0,Monthly bill
 
 2025-10-01,Food,780.0,Meals
 2025-10-02,Transport,690.0,Bike fuel
-2025-10-03,Stationery,1030.0,Notes & pens
+2025-10-03,Stationery,930.0,Notes & pens
 
 2025-10-04,Food,860.0,Dinner
 2025-10-05,Internet,740.0,WiFi
-2025-10-06,Food,900.0,Lunch
+2025-10-06,Food,800.0,Lunch
 
 2025-10-07,Recreation,810.0,Hangout
 2025-10-08,Food,870.0,Meals
@@ -18,7 +18,7 @@ Date,Category,Amount,Description
 
 2025-10-10,Food,760.0,Lunch
 2025-10-11,Other,830.0,House items
-2025-10-12,Food,910.0,Dinner
+2025-10-12,Food,8810.0,Dinner
 
 2025-10-13,Recreation,840.0,Friends meetup
 2025-10-14,Food,790.0,Meals
@@ -52,7 +52,7 @@ Date,Category,Amount,Description
 2025-11-04,Recreation,840.0,Hangout
 2025-11-05,Food,830.0,Dinner
 
-2025-11-06,Internet,2500.0,WiFi
+2025-11-06,Internet,1350.0,WiFi
 2025-11-07,Food,830.0,Lunch
 2025-11-08,Stationery,780.0,Notes
 
@@ -80,7 +80,7 @@ Date,Category,Amount,Description
 2025-11-25,Food,820.0,Meals
 2025-11-26,Other,840.0,Misc
 
-2025-11-27,Internet,2500.0,Monthly net
+2025-11-27,Internet,1400.0,Monthly net
 2025-11-28,Food,830.0,Dinner
 2025-11-29,Recreation,810.0,Weekend
 
@@ -89,19 +89,19 @@ Date,Category,Amount,Description
 2025-12-02,Transport,810.0,Commute
 
 2025-12-03,Food,840.0,Dinner
-2025-12-04,Recreation,820.0,Hangout
-2025-12-05,Food,840.0,Lunch
+2025-12-04,Recreation,1280.0,Hangout
+2025-12-05,Food,540.0,Lunch
 
-2025-12-06,Internet,2500.0,WiFi
-2025-12-07,Food,830.0,Dinner
+2025-12-06,Internet,1200.0,WiFi
+2025-12-07,Food,530.0,Dinner
 2025-12-08,Stationery,820.0,Notes
 
-2025-12-09,Food,860.0,Meals
-2025-12-10,Transport,810.0,Bike fuel
+2025-12-09,Food,1260.0,Meals
+2025-12-10,Transport,410.0,Bike fuel
 2025-12-11,Food,830.0,Dinner
 
-2025-12-12,Recreation,850.0,Friends
-2025-12-13,Food,810.0,Lunch
+2025-12-12,Recreation,550.0,Friends
+2025-12-13,Food,1210.0,Lunch
 2025-12-14,Other,840.0,Misc
 
 2025-12-15,Food,2500.0,Mid-month total
