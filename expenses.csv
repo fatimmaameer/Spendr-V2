@@ -1,95 +1,96 @@
 Date,Category,Amount,Description
+
 2025-09-27,Food,820.0,Lunch
-2025-09-28,Transport,760.0,Commute
-2025-09-29,Other,810.0,Misc items
+2025-09-28,Transport,1200.0,Commute
+2025-09-29,Other,480.0,Misc items
+
 2025-09-30,Internet,1200.0,Monthly bill
-
 2025-10-01,Food,780.0,Meals
-2025-10-02,Transport,690.0,Bike fuel
-2025-10-03,Stationery,930.0,Notes & pens
+2025-10-02,Transport,550.0,Bike fuel
 
-2025-10-04,Food,860.0,Dinner
-2025-10-05,Internet,740.0,WiFi
-2025-10-06,Food,800.0,Lunch
+2025-10-03,Stationery,450.0,Notes & pens
+2025-10-04,Food,1250.0,Dinner
+2025-10-05,Internet,750.0,WiFi
 
-2025-10-07,Recreation,810.0,Hangout
-2025-10-08,Food,870.0,Meals
-2025-10-09,Transport,820.0,Commute
+2025-10-06,Food,830.0,Lunch
+2025-10-07,Recreation,1200.0,Hangout
+2025-10-08,Food,470.0,Meals
 
-2025-10-10,Food,760.0,Lunch
-2025-10-11,Other,830.0,House items
-2025-10-12,Food,8810.0,Dinner
+2025-10-09,Transport,880.0,Commute
+2025-10-10,Food,520.0,Lunch
+2025-10-11,Other,1120.0,House items
 
-2025-10-13,Recreation,840.0,Friends meetup
-2025-10-14,Food,790.0,Meals
+2025-10-12,Food,880.0,Dinner
+2025-10-13,Recreation,1240.0,Friends meetup
+2025-10-14,Food,390.0,Meals
+
 2025-10-15,Internet,870.0,WiFi recharge
+2025-10-16,Food,1110.0,Lunch
+2025-10-17,Transport,520.0,Bike fuel
 
-2025-10-16,Food,810.0,Lunch
-2025-10-17,Transport,760.0,Bike fuel
-2025-10-18,Food,930.0,Dinner
+2025-10-18,Food,1230.0,Dinner
+2025-10-19,Stationery,790.0,Assignments
+2025-10-20,Food,550.0,Meals
 
-2025-10-19,Stationery,820.0,Assignments
-2025-10-20,Food,850.0,Meals
 2025-10-21,Recreation,830.0,Movie
+2025-10-22,Food,1190.0,Meals
+2025-10-23,Transport,530.0,Commute
 
-2025-10-22,Food,890.0,Meals
-2025-10-23,Transport,770.0,Commute
-2025-10-24,Food,840.0,Dinner
-
+2025-10-24,Food,1240.0,Dinner
 2025-10-25,Other,820.0,Misc
-2025-10-26,Food,790.0,Lunch
-2025-10-27,Internet,900.0,Monthly plan
+2025-10-26,Food,490.0,Lunch
 
-2025-10-28,Food,860.0,Dinner
-2025-10-29,Recreation,810.0,Chai
+2025-10-27,Internet,1200.0,Monthly plan
+2025-10-28,Food,560.0,Dinner
+2025-10-29,Recreation,740.0,Chai
+
 2025-10-30,Food,830.0,Weekend meal
-
 2025-10-31,Transport,790.0,Bike fuel
 2025-11-01,Food,850.0,Meals
-2025-11-02,Transport,860.0,Commute
 
-2025-11-03,Food,820.0,Lunch
-2025-11-04,Recreation,840.0,Hangout
+2025-11-02,Transport,1260.0,Commute
+2025-11-03,Food,520.0,Lunch
+2025-11-04,Recreation,800.0,Hangout
 2025-11-05,Food,830.0,Dinner
 
-2025-11-06,Internet,1350.0,WiFi
-2025-11-07,Food,830.0,Lunch
-2025-11-08,Stationery,780.0,Notes
+2025-11-06,Internet,1250.0,WiFi
+2025-11-07,Food,530.0,Lunch
+2025-11-08,Stationery,480.0,Notes
 
 2025-11-09,Food,890.0,Meals
-2025-11-10,Transport,780.0,Bike fuel
+2025-11-10,Transport,1180.0,Bike fuel
 2025-11-11,Food,830.0,Dinner
 
-2025-11-12,Recreation,850.0,Chai night
-2025-11-13,Food,800.0,Lunch
+2025-11-12,Recreation,1250.0,Chai night
+2025-11-13,Food,500.0,Lunch
 2025-11-14,Other,860.0,Household
 
-2025-11-15,Food,830.0,Dinner
-2025-11-16,Internet,860.0,Recharge
+2025-11-15,Food,1260.0,Dinner
+2025-11-16,Internet,450.0,Recharge
 2025-11-17,Food,810.0,Lunch
 
-2025-11-18,Transport,790.0,Commute
-2025-11-19,Food,860.0,Meals
+2025-11-18,Transport,1190.0,Commute
+2025-11-19,Food,500.0,Meals
 2025-11-20,Recreation,850.0,Friends
 
-2025-11-21,Food,830.0,Dinner
-2025-11-22,Stationery,820.0,Printing
+2025-11-21,Food,1200.0,Dinner
+2025-11-22,Stationery,520.0,Printing
 2025-11-23,Food,850.0,Lunch
 
-2025-11-24,Transport,840.0,Bike fuel
-2025-11-25,Food,820.0,Meals
+2025-11-24,Transport,1240.0,Bike fuel
+2025-11-25,Food,520.0,Meals
 2025-11-26,Other,840.0,Misc
 
-2025-11-27,Internet,1400.0,Monthly net
-2025-11-28,Food,830.0,Dinner
+2025-11-27,Internet,1200.0,Monthly net
+2025-11-28,Food,530.0,Dinner
 2025-11-29,Recreation,810.0,Weekend
 
-2025-11-30,Food,860.0,End-month meal
-2025-12-01,Food,830.0,Lunch
+2025-11-30,Food,1160.0,End-month meal
+2025-12-01,Food,600.0,Lunch
 2025-12-02,Transport,810.0,Commute
 
-2025-12-03,Food,840.0,Dinner
-2025-12-04,Recreation,1280.0,Hangout
+2025-12-03,Food,1240.0,Dinner
+2025-12-04,Recreation,780.0,Hangout
 2025-12-05,Food,540.0,Lunch
 
 2025-12-06,Internet,1200.0,WiFi
